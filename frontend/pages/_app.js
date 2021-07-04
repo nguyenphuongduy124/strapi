@@ -1,37 +1,36 @@
-import App from "next/app";
-import Head from "next/head";
-import Layout from "../components/Layout";
-import { getCategories } from "../utils/api";
-import "../styles/index.css";
+import "../styles/globals.css";
+import Header from "components/Header";
+import { ThemeProvider } from "emotion-theming";
+import GlobalStyles from "components/GlobalStyles/GlobalStyles";
+import theme from "../theme/theme";
+import getConfig from "next/config";
+import fetch from "isomorphic-unfetch";
+import { DefaultSeo } from "next-seo";
+import SEO from "../next-seo.config";
+import ContextWrapper from "components/ContextWrapper";
 
-const MyApp = ({ Component, pageProps }) => {
+function MyApp({ Component, pageProps, navigation }) {
   return (
-    <Layout categories={pageProps.categories}>
-      <Head>
-        <link rel="preconnect" href="https://app.snipcart.com" />
-        <link rel="preconnect" href="https://cdn.snipcart.com" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.snipcart.com/themes/v3.0.16/default/snipcart.css"
-        />
-        <script src="https://cdn.snipcart.com/themes/v3.0.16/default/snipcart.js" />
-      </Head>
-      <Component {...pageProps} />
-    </Layout>
+    <>
+      <DefaultSeo {...SEO} />
+      <ThemeProvider theme={theme}>
+        <GlobalStyles />
+        <ContextWrapper navigation={navigation}>
+          <Header></Header>
+        </ContextWrapper>
+        <Component {...pageProps} />
+      </ThemeProvider>
+    </>
   );
-};
+}
 
-// getInitialProps disables automatic static optimization for pages that don't
-// have getStaticProps. So [[...slug]] pages still get SSG.
-// Hopefully we can replace this with getStaticProps once this issue is fixed:
-// https://github.com/vercel/next.js/discussions/10949
-MyApp.getInitialProps = async (ctx) => {
-  // Calls page's `getInitialProps` and fills `appProps.pageProps`
-  const appProps = await App.getInitialProps(ctx);
-  // Fetch global site settings from Strapi
-  const categories = await getCategories();
-  // Pass the data to our page via props
-  return { ...appProps, pageProps: { categories, path: ctx.pathname } };
+const { publicRuntimeConfig } = getConfig();
+
+MyApp.getInitialProps = async () => {
+  const res = await fetch(publicRuntimeConfig.API_URL + "/navigations");
+  const data = await res.json();
+
+  return { navigation: data };
 };
 
 export default MyApp;
